@@ -1,0 +1,13 @@
+out/
+.cache/
+companies/
+jobs/
+voice/
+notes.md
+resume-public.md
+profile.md
+profile.prev.md
+candidate.json
+rules/personal-data.local.txt
+config/search.prev.json
+*.pdf

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun messages/scripts/*)",
+      "Bash(grep -n -i *)",
+      "Edit(messages/out/**)",
+      "Edit(messages/jobs/**)",
+      "Edit(messages/companies/**)",
+      "Edit(messages/scripts/parsers/**)",
+      "Edit(messages/config/**)",
+      "Edit(messages/profile.md)",
+      "Edit(messages/profile.prev.md)",
+      "Edit(messages/candidate.json)",
+      "Edit(messages/rules/personal-data.local.txt)"
+    ]
+  }
+}

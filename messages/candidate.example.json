@@ -1,0 +1,13 @@
+{
+  "name": "Иван Петров",
+  "short_name": "Иван",
+  "links": {
+    "site": "ivanpetrov.dev",
+    "github": "github.com/ivanpetrov",
+    "telegram": "@ivan_petrov"
+  },
+  "pdf": {
+    "default": "Petrov-Ivan-Backend-Developer.pdf",
+    "lead": ""
+  }
+}

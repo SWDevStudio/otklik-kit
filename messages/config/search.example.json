@@ -1,0 +1,59 @@
+{
+  "queries": ["frontend", "фронтенд", "vue", "react", "nuxt", "next.js"],
+  "remote_only": true,
+  "min_salary": 200000,
+  "min_score": 12,
+  "limit": 30,
+  "fetch_top": 80,
+  "max_pages": 20,
+  "skip_no_experience": true,
+  "many_responses": 500,
+  "title_ok": "front|фронт|vue|react|nuxt|next\\.?js|<w>ui</w>|интерфейс|web|веб|full-?\\s*stack|фулл?стек",
+  "title_bad": "junior|джун|стаж|intern|trainee|младш|начинающ|без опыта|ученик|преподават|наставник|ментор|автор\\s+курс|куратор|\\.net|c#|java(?!script)|python|php|golang|<w>go</w>|ruby|<w>1[сc]</w>|битрикс|bitrix|wordpress|<w>qa</w>|quality|automation|автотест|<w>sdet|тестиров|дизайн|designer|angular|react\\s*native|flutter|<w>ios</w>|android|kotlin|swift|<w>qt</w>|back-?\\s*end|бэкенд|бекенд|devops|аналитик|analyst|<w>ai\\s+engineer|<w>ml</w>|pentest|пентест|security|безопасн|верстальщ|менеджер|manager|маркетолог|<w>seo</w>|rust|c\\+\\+|unity|<w>game|<w>игр",
+  "levels": {
+    "lead": { "re": "lead|лид(?!\\p{L}*ер)|руковод|head|principal|staff|архитект|тимлид|техлид", "w": 4 },
+    "senior": { "re": "senior|сеньор|синьор|сениор|ведущ|старш", "w": 4 },
+    "middle": { "re": "middle|мидл", "w": 1 }
+  },
+  "prefer_experience": ["3-6", "6+"],
+  "experience_bonus": 2,
+  "title_terms": [
+    ["vue|nuxt", 3],
+    ["react|next", 2],
+    ["front|фронт", 1],
+    ["typescript", 1],
+    ["full-?stack|фулл?стек", -1]
+  ],
+  "terms": [
+    ["vue", "vue|вью", 3],
+    ["nuxt", "nuxt", 3],
+    ["react", "react(?!\\s*native)", 2],
+    ["next.js", "next\\.?js|nextjs", 2],
+    ["typescript", "typescript|<w>ts</w>", 2],
+    ["ssr", "<w>ssr</w>|server[- ]side|серверн\\p{L}*\\s+рендер", 2],
+    ["pinia", "pinia", 1],
+    ["vuex", "vuex", 1],
+    ["redux", "redux", 1],
+    ["composition api", "composition\\s*api", 1],
+    ["vite", "<w>vite</w>", 1],
+    ["webpack", "webpack", 1],
+    ["vitest", "vitest", 1],
+    ["tailwind", "tailwind", 1],
+    ["node.js", "node\\.?js|<w>node</w>", 1],
+    ["capacitor", "capacitor|tauri", 1],
+    ["e-commerce", "e-?commerce|интернет-магазин|маркетплейс|ритейл", 1],
+    ["code review", "code\\s*review|код-?ревью|ревью\\s+кода", 1],
+    ["наставничество", "наставни|менторств|менторинг|руковод\\p{L}*\\s+(команд|разработчик)|управлени\\p{L}*\\s+команд", 1],
+    ["производительность", "производительност|performance|web\\s*vitals|lighthouse", 1]
+  ],
+  "minus": [
+    { "name": "angular без vue и react", "re": "angular", "unless": "vue|react", "w": -8 },
+    { "name": "angular", "re": "angular", "and": "vue|react", "w": -1 },
+    { "name": "мобильная нативная", "re": "react native|flutter|swift|kotlin", "w": -3 },
+    { "name": "svelte или solid", "re": "svelte|solid\\.?js", "w": -1 },
+    { "name": "битрикс или wordpress", "re": "битрикс|bitrix|wordpress", "w": -2 },
+    { "name": "задачи junior", "re": "<w>(junior|джуниор|стажёр|стажер|без опыта)</w>", "w": -3 }
+  ],
+  "title_minus": [{ "name": "fullstack, половина задач backend", "re": "full-?\\s*stack|фулл?стек", "w": -4 }],
+  "bonuses": [{ "level": "lead", "term": "наставничество", "w": 1 }]
+}
