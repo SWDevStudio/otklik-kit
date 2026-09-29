@@ -356,11 +356,15 @@ export async function setPosition(page, hash, r, save) {
     if (r.currency) await clickSel(page, `[data-qa="resume-currency-input-${r.currency}"]`);
   }
   const multi = async (label, want) => {
-    await clickPoint(page, await page.eval((l) => { const b = __hh.box(l); if (!b) return null; b.scrollIntoView({ block: "center" }); const r = b.getBoundingClientRect(); return { x: r.x + r.width / 3, y: r.y + r.height * 0.7 }; }, label));
+    await page.eval((l) => __hh.box(l)?.scrollIntoView({ block: "center" }), label);
+    await sleep(700);
+    await clickPoint(page, await page.eval((l) => { const b = __hh.box(l); if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.x + r.width / 3, y: r.y + r.height * 0.7 }; }, label));
     await sleep(1000);
     const rows = () => page.eval(() => __hh.checkboxes(document).filter(({ c }) => c.closest('[role="listbox"], [role="dialog"]')).map(({ c, t }, i) => ({ t, checked: c.checked })));
     let list = await rows();
     if (!list.length) throw new Error(label + ": список не открылся");
+    const absent = want.filter((w) => !list.some((row) => row.t === w));
+    if (absent.length) throw new Error(label + ": в списке hh нет «" + absent.join("», «") + "»; есть: " + list.map((row) => row.t).join(", "));
     for (const row of list) if (want.includes(row.t) !== row.checked) {
       await clickPoint(page, await page.eval((t) => { const hit = __hh.checkboxes(document).find(({ c, t: tt }) => c.closest('[role="listbox"], [role="dialog"]') && tt === t); return hit && __hh.point(hit.row, 24); }, row.t));
       await sleep(400);
@@ -368,8 +372,11 @@ export async function setPosition(page, hash, r, save) {
     list = await rows();
     const bad = list.filter((row) => want.includes(row.t) !== row.checked);
     if (bad.length) throw new Error(label + ": не выставились " + bad.map((b) => b.t).join(", "));
-    if (!(await clickSel(page, '[data-qa="magritte-select-apply"]'))) throw new Error(label + ": нет кнопки «Выбрать»");
+    // кнопка внутри окна: без прокрутки страницы, клик в центр
+    const applyAt = await page.eval(() => { const b = document.querySelector('[data-qa="magritte-select-apply"]'); if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+    if (!(await clickPoint(page, applyAt))) throw new Error(label + ": нет кнопки «Выбрать»");
     await sleep(800);
+    if (await page.eval(() => [...document.querySelectorAll('[role="listbox"], [role="dialog"]')].some((e) => e.getClientRects().length))) throw new Error(label + ": окно выбора не закрылось");
   };
   if (r.employment) await multi("Тип занятости", r.employment);
   if (r.format) await multi("Формат работы", r.format);
@@ -395,7 +402,7 @@ export async function setPosition(page, hash, r, save) {
   for (const x of r.employment || []) if (!check.fields["Тип занятости"].includes(x)) problems.push("тип занятости " + x);
   for (const x of r.format || []) if (!check.fields["Формат работы"].includes(x)) problems.push("формат " + x);
   if (r.trips && check.fields["Командировки"] !== r.trips) problems.push("командировки");
-  if (problems.length) throw new Error("условия не выставились: " + problems.join(", ") + ", не сохраняю");
+  if (problems.length) throw new Error("условия не выставились: " + problems.join(", ") + ", не сохраняю; в форме: " + JSON.stringify(check.fields));
   if (save) {
     await clickPoint(page, await page.eval(() => __hh.point([...document.querySelectorAll("button")].find((b) => __hh.vis(b) && __hh.norm(b.textContent) === "Сохранить"))));
     await sleep(3500);

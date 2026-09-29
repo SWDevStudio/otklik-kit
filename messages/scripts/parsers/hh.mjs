@@ -5,7 +5,7 @@ export const hosts = ["hh.ru", "hh.kz"];
 const EXP = { noExperience: "без опыта", between1And3: "1-3 года", between3And6: "3-6 лет", moreThan6: "более 6 лет" };
 const EXP_CODE = { noExperience: "none", between1And3: "1-3", between3And6: "3-6", moreThan6: "6+" };
 const WF = { ON_SITE: "офис", REMOTE: "удалённо", HYBRID: "гибрид", FIELD_WORK: "разъездной" };
-const RATES = { RUR: 1, RUB: 1, USD: 90, EUR: 100, KZT: 0.18, UZS: 0.0072, BYN: 28, KGS: 1 };
+export const RATES = { RUR: 1, RUB: 1, USD: 90, EUR: 100, KZT: 0.18, UZS: 0.0072, BYN: 28, KGS: 1 };
 
 export function match(u) {
   const h = u.hostname.replace(/^www\./, "");
