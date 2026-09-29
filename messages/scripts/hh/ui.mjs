@@ -351,7 +351,16 @@ export async function setPosition(page, hash, r, save) {
     await blur(page);
   }
   if (r.salary !== undefined) {
-    await typeInto(page, '[data-qa="resume-salary-amount"]', String(r.salary));
+    // поле с маской иногда дописывает цифры к прежнему значению (300 000 → 3 000 000): читаем обратно и набираем заново
+    const digits = () => page.eval(() => (document.querySelector('[data-qa="resume-salary-amount"]')?.value || "").replace(/\D/g, ""));
+    for (let attempt = 0; attempt < 4; attempt++) {
+      await typeInto(page, '[data-qa="resume-salary-amount"]', String(r.salary));
+      await sleep(300);
+      if ((await digits()) === String(r.salary)) break;
+      await page.eval(() => document.querySelector('[data-qa="resume-salary-amount"]')?.select());
+      await page.key("Backspace");
+      await sleep(300);
+    }
     await blur(page);
     if (r.currency) await clickSel(page, `[data-qa="resume-currency-input-${r.currency}"]`);
   }
@@ -402,7 +411,7 @@ export async function setPosition(page, hash, r, save) {
   for (const x of r.employment || []) if (!check.fields["Тип занятости"].includes(x)) problems.push("тип занятости " + x);
   for (const x of r.format || []) if (!check.fields["Формат работы"].includes(x)) problems.push("формат " + x);
   if (r.trips && check.fields["Командировки"] !== r.trips) problems.push("командировки");
-  if (problems.length) throw new Error("условия не выставились: " + problems.join(", ") + ", не сохраняю; в форме: " + JSON.stringify(check.fields));
+  if (problems.length) throw new Error("условия не выставились: " + problems.join(", ") + ", не сохраняю; в форме: " + JSON.stringify({ title: check.title, salary: check.salary, ...check.fields }));
   if (save) {
     await clickPoint(page, await page.eval(() => __hh.point([...document.querySelectorAll("button")].find((b) => __hh.vis(b) && __hh.norm(b.textContent) === "Сохранить"))));
     await sleep(3500);
