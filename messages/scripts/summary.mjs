@@ -2,6 +2,11 @@
 import { readdirSync, existsSync, writeFileSync, rmSync } from "node:fs";
 import { join, basename } from "node:path";
 import { OUT, JOBS, fwd, read, runDir, parseDoc, formatDoc, parseKeyLines, jobFile } from "./lib.mjs";
+import { atsResumes } from "./ats-core.mjs";
+
+// Строка ATS: каким резюме откликаться (на площадке) и каких навыков вакансии в нём нет.
+const resumeTitle = Object.fromEntries(atsResumes().map((r) => [r.name, r.title || r.name]));
+const atsLine = (h) => (h.ats === undefined ? [] : [`ATS: ${h.ats} по резюме «${resumeTitle[h.ats_resume] || h.ats_resume}»${h.board ? ", откликайтесь им" : ""}${h.ats_missing?.length ? `; нет в резюме: ${h.ats_missing.join(", ")}` : ""}`]);
 
 const FIRST_CHECK = "Перепишите своими словами хотя бы одну фразу: письма с ручной правкой работают лучше.";
 const LETTER_HEADER = "## Сопроводительное письмо";
@@ -59,7 +64,7 @@ function syncJob(r) {
   if (r.letter) {
     const x = extras(r);
     status = "letter";
-    tail = [LETTER_HEADER, "", r.letter, "", `Вложение: ${r.head.attach || "-"}`, "", "Перед отправкой:", ...x.checks.map((c) => "- " + c)];
+    tail = [LETTER_HEADER, "", r.letter, "", `Вложение: ${r.head.attach || "-"}`, ...atsLine(r.head), "", "Перед отправкой:", ...x.checks.map((c) => "- " + c)];
     if (x.decisions.length) tail.push("", "Агент решил сам:", ...x.decisions.map((c) => "- " + c));
     if (x.questions.length) tail.push("", "Что усилит письмо:", ...x.questions.map((c) => "- " + c));
     tail.push("", `Статус: ${statusText(r)}. Отчёт: ${fwd(join(r.dir, "report.md"))}`);
@@ -100,7 +105,7 @@ dirs.forEach((dir, i) => {
     return;
   }
   const x = extras(r);
-  out.push(`## ${n}`, "", r.letter, "", `Вложение: ${r.head.attach || "-"}`);
+  out.push(`## ${n}`, "", r.letter, "", `Вложение: ${r.head.attach || "-"}`, ...atsLine(r.head));
   if (r.head.channel === "email" && r.head.apply_email) out.push(`Куда: ${r.head.apply_email}`);
   if (r.head.channel === "telegram" && r.head.apply_tg) out.push(`Кому: ${r.head.apply_tg}`);
   out.push("Перед отправкой:", ...x.checks.map((c) => "- " + c));

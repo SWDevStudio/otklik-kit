@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { OUT, channelSpec, fwd, read, sha256, today, parseDoc, formatDoc, parseKeyLines, pdfFor, statusLine } from "./lib.mjs";
+import { join, resolve } from "node:path";
+import { MSG, OUT, channelSpec, fwd, read, sha256, today, parseDoc, formatDoc, parseKeyLines, pdfFor, statusLine } from "./lib.mjs";
+import { atsResumes, marketCorpus, prepare } from "./ats-core.mjs";
 import { settings, classify, extract, hints, companyCard, quality, parserErrors } from "./extract.mjs";
 
 const STUB = "ТЕКСТ ВАКАНСИИ НЕ ПОЛУЧЕН";
@@ -196,6 +197,25 @@ for (const raw of opt.sources) {
   if (card.card && opt.research) row.notes.push(card.fresh ? "карточка компании свежая" : "card=" + card.card);
   if (v.reused) row.notes.push("текст из прошлой загрузки");
   rows.push(row);
+}
+
+// ATS: каждая загруженная вакансия против резюме из messages/resumes (или resume-public.md). В vacancy.md
+// пишутся оценка, лучшее резюме и навыки вакансии, которых в нём нет; PDF для вложения берётся от этого резюме.
+const atsList = atsResumes();
+const atsRows = rows.filter((r) => r.state === "new").map((r) => ({ r, file: join(r.dir, "vacancy.md") })).filter((x) => existsSync(x.file)).map((x) => ({ ...x, doc: parseDoc(read(x.file)) })).filter((x) => x.doc.head.ok === true && !x.doc.body.startsWith(STUB));
+if (atsList.length && atsRows.length) {
+  const vacancies = atsRows.map((x) => ({ title: x.doc.head.title, key_skills: x.doc.head.key_skills || [], text: x.doc.body }));
+  const ats = prepare({ resumes: atsList, vacancies, corpus: marketCorpus() });
+  atsRows.forEach((x, i) => {
+    const b = ats.best(vacancies[i], { lead: x.doc.head.lead === true });
+    if (!b) return;
+    const head = { ...x.doc.head, ats: b.score, ats_resume: b.resume.name, ats_missing: b.missing.slice(0, 10).map(ats.display) };
+    const pdf = b.resume.pdf && resolve(MSG, b.resume.pdf);
+    const spec = channelSpec(head.channel);
+    if (pdf && existsSync(pdf) && /PDF/.test(spec.attach)) head.attach = `${spec.attach}: ${fwd(pdf)}`;
+    writeFileSync(x.file, formatDoc(head, x.doc.body));
+    x.r.notes.push(`ATS ${b.score} (резюме ${b.resume.name})${head.ats_missing.length ? ", нет в резюме: " + head.ats_missing.slice(0, 5).join(", ") : ""}`);
+  });
 }
 
 console.log(statusLine());
