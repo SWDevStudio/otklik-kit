@@ -98,15 +98,14 @@ export function candidate() {
 
 export function channelSpec(channel) {
   const c = candidate();
-  const { site, github, telegram } = c.links;
-  const links = [site, github].filter(Boolean).join(" и ");
-  const form = { words: [60, 130], attach: site ? `PDF, если форма принимает файл, иначе ссылка ${site}` : "PDF, если форма принимает файл", sign: c.name };
+  const { site, telegram } = c.links;
+  const form = { words: [35, 80], attach: site ? `PDF, если форма принимает файл, иначе ссылка ${site}` : "PDF, если форма принимает файл", sign: c.name };
   const specs = {
-    hh: { words: [60, 130], attach: "ничего: отклик уходит вместе с резюме на hh.ru", sign: c.short, board: true },
-    habr_career: { words: [60, 130], attach: links ? `ссылки в тексте письма: ${links}` : "ничего: отклик уходит вместе с профилем на Хабр Карьере", sign: [c.name, github].filter(Boolean).join(", "), board: true },
-    board: { words: [60, 130], attach: "ничего: отклик уходит вместе с резюме на площадке", sign: c.short, board: true },
-    telegram: { words: [40, 90], attach: "PDF файлом следом за сообщением", sign: c.short },
-    email: { words: [60, 180], attach: "PDF во вложении", sign: [c.name, telegram && "Telegram " + telegram].filter(Boolean).join(", "), subject: `Отклик на вакансию <должность>${c.name ? ", " + c.name : ""}` },
+    hh: { words: [30, 70], attach: "ничего: отклик уходит вместе с резюме на hh.ru", board: true },
+    habr_career: { words: [30, 70], attach: "ничего: отклик уходит вместе с профилем на Хабр Карьере", board: true },
+    board: { words: [30, 70], attach: "ничего: отклик уходит вместе с резюме на площадке", board: true },
+    telegram: { words: [30, 75], attach: "PDF файлом следом за сообщением", sign: c.short },
+    email: { words: [35, 85], attach: "PDF во вложении", sign: [c.name, telegram && "Telegram " + telegram].filter(Boolean).join(", "), subject: `Отклик на вакансию <должность>${c.name ? ", " + c.name : ""}` },
     form,
     site: form,
     file: form,
