@@ -1,0 +1,33 @@
+{
+  "_": "Группы взаимозаменяемых написаний навыка для ats.mjs. Совпадение по любому члену группы засчитывает весь навык. Держите группы узкими: слишком широкая группа завышает оценку.",
+  "groups": [
+    ["javascript", "js", "java script", "javascript (es6+)", "es6"],
+    ["typescript", "ts"],
+    ["vue.js", "vue", "vuejs"],
+    ["vue 3", "vue3", "vue.js 3"],
+    ["vue 2", "vue2"],
+    ["react", "react.js", "reactjs"],
+    ["next.js", "nextjs"],
+    ["nuxt", "nuxt.js", "nuxtjs", "nuxt 3", "nuxt3"],
+    ["html", "html5"],
+    ["css", "css3"],
+    ["scss", "sass"],
+    ["rest api", "rest", "restful api", "restful"],
+    ["node.js", "nodejs", "node"],
+    ["ci/cd", "cicd", "gitlab ci", "github actions"],
+    ["postgresql", "postgres"],
+    ["kubernetes", "k8s"],
+    ["tailwind css", "tailwind"],
+    ["atlassian jira", "jira"],
+    ["code review", "код-ревью", "ревью кода", "code-review"],
+    ["unit testing", "unit-тесты", "unit-тестирование", "юнит-тесты"],
+    ["tanstack query", "react query", "react query / tanstack query"],
+    ["redux toolkit", "rtk"],
+    ["адаптивная верстка", "адаптивная вёрстка"],
+    ["кроссбраузерная верстка", "кроссбраузерная вёрстка"],
+    ["английский язык", "english"],
+    ["llm", "large language model"],
+    ["управление командой", "руководство командой"],
+    ["teamleading", "team lead", "тимлид"]
+  ]
+}

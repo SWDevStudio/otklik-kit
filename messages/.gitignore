@@ -11,3 +11,5 @@ candidate.json
 rules/personal-data.local.txt
 config/search.prev.json
 *.pdf
+resumes/
+config/search.json

@@ -125,11 +125,16 @@ export function findScanner() {
   const home = homedir();
   const scan = [join(home, ".claude", "skills", "humanizer-ru", "scripts", "scan.py"), join(home, ".agents", "skills", "humanizer-ru", "scripts", "scan.py")].find((p) => existsSync(p));
   if (!scan) return { error: "humanizer-ru не найден" };
+  const py = findPython();
+  return py ? { scan, py } : { error: "нет python с razdel и pymorphy3" };
+}
+
+export function findPython() {
   for (const py of ["python", "py", "python3"]) {
     const r = spawnSync(py, ["-c", "import razdel, pymorphy3"], { encoding: "utf8", env: { ...process.env, PYTHONUTF8: "1" }, windowsHide: true });
-    if (r.status === 0) return { scan, py };
+    if (r.status === 0) return py;
   }
-  return { error: "нет python с razdel и pymorphy3" };
+  return "";
 }
 
 export function findBrowser() {
@@ -162,7 +167,7 @@ export function profileState() {
   return { state: have === want ? "профиль актуален" : "профиль устарел, нужен --refresh-profile", want, have };
 }
 
-const PRIVATE = ["messages/out", "messages/.cache", "messages/companies", "messages/jobs", "messages/notes.md", "messages/voice", "messages/resume-public.md", "messages/profile.md", "messages/candidate.json", "messages/rules/personal-data.local.txt"];
+const PRIVATE = ["messages/out", "messages/.cache", "messages/companies", "messages/jobs", "messages/notes.md", "messages/voice", "messages/resume-public.md", "messages/profile.md", "messages/candidate.json", "messages/rules/personal-data.local.txt", "messages/resumes"];
 
 export function leaks() {
   const r = spawnSync("git", ["ls-files", "--", ...PRIVATE], { cwd: REPO, encoding: "utf8", windowsHide: true });
