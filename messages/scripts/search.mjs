@@ -3,6 +3,7 @@ import { writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { JOBS, CONFIG, fwd, read, today, parseDoc, formatDoc, statusLine, jobFile } from "./lib.mjs";
 import { settings, kit, PARSERS, parserErrors, classify, extract, blockedHosts } from "./extract.mjs";
+import { atsResumes, marketCorpus, prepare } from "./ats-core.mjs";
 
 const CONFIG_FILE = join(CONFIG, "search.json");
 const cli = { queries: [], sources: [] };
@@ -15,6 +16,7 @@ for (let i = 0; i < argv.length; i++) {
   else if (a === "--limit") cli.limit = +argv[++i];
   else if (a === "--fetch-top") cli.fetchTop = +argv[++i];
   else if (a === "--min-salary") cli.minSalary = +argv[++i];
+  else if (a === "--min-ats") cli.minAts = +argv[++i];
   else if (a === "--any-format") cli.anyFormat = true;
   else if (a === "--refetch") settings.refetch = true;
   else if (a === "--check-config") cli.check = true;
@@ -44,6 +46,7 @@ const C = {
   remoteOnly: cli.anyFormat ? false : cfg.remote_only !== false,
   minSalary: cli.minSalary ?? cfg.min_salary ?? 0,
   minScore: cli.minScore ?? cfg.min_score ?? 10,
+  minAts: cli.minAts ?? cfg.min_ats ?? 0,
   limit: cli.limit ?? cfg.limit ?? 30,
   fetchTop: cli.fetchTop ?? cfg.fetch_top ?? 80,
   maxPages: cfg.max_pages ?? 20,
@@ -173,31 +176,44 @@ for (const c of ranked) {
     if (e.brokenParser) console.log(`warn | ${e.message}: нужен ремонт парсера: ${e.brokenParser} (${s.host})`);
   }
 }
+// ATS: каждая вакансия против резюме из messages/resumes (или resume-public.md); берётся лучшее резюме.
+const atsList = atsResumes();
+if (atsList.length && scored.length) {
+  const ats = prepare({ resumes: atsList, vacancies: scored.map((x) => x.v), corpus: marketCorpus() });
+  for (const x of scored) {
+    const b = ats.best(x.v, { lead: x.level === "lead" });
+    if (b) x.ats = { score: b.score, resume: b.resume.name, missing: b.missing.slice(0, 8).map(ats.display) };
+  }
+}
+const atsOk = (x) => !C.minAts || !x.ats || x.ats.score >= C.minAts;
 const RANK = Object.fromEntries(C.levels.map((l, i) => [l.name, i]));
-scored.sort((a, b) => b.score - a.score || (RANK[a.level] ?? 99) - (RANK[b.level] ?? 99));
-const picked = scored.filter((x) => x.score >= C.minScore).slice(0, C.limit);
+scored.sort((a, b) => b.score - a.score || (b.ats?.score ?? -1) - (a.ats?.score ?? -1) || (RANK[a.level] ?? 99) - (RANK[b.level] ?? 99));
+const byScore = scored.filter((x) => x.score >= C.minScore);
+const picked = byScore.filter(atsOk).slice(0, C.limit);
+const atsNote = atsList.length ? ` | ATS по резюме ${atsList.map((r) => r.name).join(", ")}${C.minAts ? `: ниже ${C.minAts} пропущено ${byScore.length - byScore.filter(atsOk).length}` : ""}` : " | ATS не считался: нет messages/resumes/*.md и resume-public.md";
 
 console.log(statusLine());
 for (const e of parserErrors) console.log("warn | парсер не загрузился: " + e);
 console.log(
-  `search: площадки ${sources.map((p) => p.name).join(", ")} | в выдаче ${total} (без дублей ${cards.size}) | зарплата «до» не выше ${C.minSalary}: пропущено ${lowPay} | без удалёнки: пропущено ${notRemote} | после отсева ${passed.length} | загружено ${scored.length}${failed ? `, ошибок ${failed}` : ""} | порог ${C.minScore}: подходят ${scored.filter((x) => x.score >= C.minScore).length}, в jobs ${picked.length}`
+  `search: площадки ${sources.map((p) => p.name).join(", ")} | в выдаче ${total} (без дублей ${cards.size}) | зарплата «до» не выше ${C.minSalary}: пропущено ${lowPay} | без удалёнки: пропущено ${notRemote} | после отсева ${passed.length} | загружено ${scored.length}${failed ? `, ошибок ${failed}` : ""} | порог ${C.minScore}: подходят ${byScore.length}${atsNote}, в jobs ${picked.length}`
 );
 for (const x of picked) {
   const file = jobFile(x.slug);
   const exists = existsSync(file);
   const prev = exists ? parseDoc(read(file)).head : {};
   if (!exists) {
-    const head = { url: x.url, title: x.v.title || x.title, company: x.v.company || x.company, salary: x.v.salary || x.salary, experience: x.v.experience || x.experience, level: x.level, score: x.score, source: x.found_via || x.source, found: today(), status: "new" };
+    const head = { url: x.url, title: x.v.title || x.title, company: x.v.company || x.company, salary: x.v.salary || x.salary, experience: x.v.experience || x.experience, level: x.level, score: x.score, ats: x.ats?.score, ats_resume: x.ats?.resume, source: x.found_via || x.source, found: today(), status: "new" };
     const why = [x.hits.join(", "), x.minus.length ? "минус: " + x.minus.join(", ") : ""].filter(Boolean).join("; ");
     const lines = [
       `# ${head.title}${head.company ? ", " + head.company : ""}`,
       "",
       `Ссылка: ${head.url}`,
       `Совпадение: ${x.score} (${why}; уровень ${x.level})`,
+      ...(x.ats ? [`ATS: ${x.ats.score} (резюме ${x.ats.resume})${x.ats.missing.length ? ", нет в резюме: " + x.ats.missing.join(", ") : ""}`] : []),
       `Зарплата: ${head.salary || "не указана"}`,
       `Опыт: ${head.experience || "-"}${x.responses !== "" && x.responses !== undefined ? ` | откликов: ${x.responses}` : ""}${x.letter ? " | письмо обязательно" : ""}${x.test ? " | есть тест" : ""}`,
     ];
     writeFileSync(file, formatDoc(head, lines.join("\n")));
   }
-  console.log([exists ? (prev.status === "letter" ? "done" : "have") : "new ", x.score, fwd(file), x.v.title || x.title, x.v.company || x.company || "-", x.v.salary || x.salary || "-", x.level].join(" | "));
+  console.log([exists ? (prev.status === "letter" ? "done" : "have") : "new ", x.score, fwd(file), x.v.title || x.title, x.v.company || x.company || "-", x.v.salary || x.salary || "-", x.level, x.ats ? `ats ${x.ats.score} ${x.ats.resume}` : "ats -"].join(" | "));
 }

@@ -5,7 +5,7 @@ export const hosts = ["hh.ru", "hh.kz"];
 const EXP = { noExperience: "без опыта", between1And3: "1-3 года", between3And6: "3-6 лет", moreThan6: "более 6 лет" };
 const EXP_CODE = { noExperience: "none", between1And3: "1-3", between3And6: "3-6", moreThan6: "6+" };
 const WF = { ON_SITE: "офис", REMOTE: "удалённо", HYBRID: "гибрид", FIELD_WORK: "разъездной" };
-const RATES = { RUR: 1, RUB: 1, USD: 90, EUR: 100, KZT: 0.18, UZS: 0.0072, BYN: 28, KGS: 1 };
+export const RATES = { RUR: 1, RUB: 1, USD: 90, EUR: 100, KZT: 0.18, UZS: 0.0072, BYN: 28, KGS: 1 };
 
 export function match(u) {
   const h = u.hostname.replace(/^www\./, "");
@@ -42,17 +42,17 @@ export async function extract(src, kit) {
   if (!jp) throw new Error("на странице нет описания вакансии (JobPosting)");
   const v = { ...kit.fromJobPosting(jp), method: "hh ld+json/" + via };
   const s = state(html, kit);
-  const vv = s?.vacancyView;
+  const vv = s?.vacancyView?.vacancyFull?.vacancy || s?.vacancyView;
   if (vv) {
     v.salary = salary(vv.compensation) || v.salary;
-    const skills = (vv.keySkills?.keySkill || []).map((x) => (typeof x === "string" ? x : x?.name)).filter(Boolean);
+    const skills = (Array.isArray(vv.keySkills) ? vv.keySkills : vv.keySkills?.keySkill || []).map((x) => (typeof x === "string" ? x : x?.name)).filter(Boolean);
     v.key_skills = [...new Map(skills.map((x) => [x.toLowerCase().replace(/[–—-]/g, "-"), x])).values()];
     v.experience = EXP[vv.workExperience] || vv.workExperience || "";
     v.employment = { FULL: "полная", PART: "частичная", PROJECT: "проектная", PROBATION: "стажировка" }[vv.employmentForm] || v.employment;
     v.work_format = formatCodes(vv.workFormats).map((x) => WF[x] || x).join(", ");
     v.location = vv.area?.name || v.location;
     v.archived = !!(vv.status?.archived || vv.closedForApplicants);
-    const ci = vv.contactInfo;
+    const ci = vv.contactInfo || s.vacancyView?.contactInfo;
     if (ci) v.contacts = [ci.fio, ci.email, ...(ci.phones?.phones || []).map((p) => p.formatted || `+${p.country}${p.city}${p.number}`)].filter(Boolean).join("; ");
     const rs = s.applicantVacancyResponseStatuses?.[src.id];
     if (rs?.shortVacancy?.["@responseLetterRequired"]) v.letter_required = true;

@@ -3,6 +3,7 @@
   "remote_only": true,
   "min_salary": 200000,
   "min_score": 12,
+  "min_ats": 50,
   "limit": 30,
   "fetch_top": 80,
   "max_pages": 20,
