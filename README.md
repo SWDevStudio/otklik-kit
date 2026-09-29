@@ -6,6 +6,8 @@
 
 Страницы сайтов модель не читает: их разбирают скрипты, в контекст попадает только готовый текст вакансии. Для площадки, которую набор ещё не знает, агент сначала пишет парсер, проверяет его и только потом берётся за письмо.
 
+Ещё набор ведёт резюме на hh.ru (скилл `hh-resume`): по срезу вакансий подбирает ключевые навыки и название, проверяет резюме ATS-сверкой и humanizer-ru и только потом заливает его на hh через браузер. Подробнее в разделе [«Резюме на hh.ru»](#резюме-на-hhru).
+
 ## Что нужно
 
 - [Claude Code](https://claude.com/claude-code).
@@ -99,6 +101,26 @@ docker compose run --rm otklik
 
 Канал отклика определяется по ссылке: на площадках это текст без приветствия, подписи и названия должности (рекрутер видит резюме, имя и вакансию в отклике), для Telegram и почты это письмо с приветствием и подписью, позиция называется в первой фразе, для почты добавляется тема. Если вакансия просит писать на почту, канал переключится сам; вручную: допишите к ссылке `#email` или `#form`.
 
+## Резюме на hh.ru
+
+Скилл `hh-resume` подбирает резюме под рынок и заливает его на hh через браузер: название, условия, «О себе», ключевые навыки, их уровни и опыт. Попросите в Claude Code, например, «обнови резюме на hh под React-вакансии». Можно работать и напрямую командами:
+
+```
+bun messages/scripts/hh-resume.mjs login     отдельный Chrome: войдите в hh в этом окне один раз
+bun messages/scripts/hh-resume.mjs init      собрать messages/resumes/*.md из того, что уже есть на hh
+bun messages/scripts/hh-market.mjs           срез рынка: вакансии, частоты тегов и названий (--lead для лидов)
+bun messages/scripts/hh-resume.mjs check     формат, humanizer-ru и ATS против среза рынка
+bun messages/scripts/hh-resume.mjs apply     заполнить формы без сохранения; с --save записать на hh
+bun messages/scripts/hh-resume.mjs verify    сверить опубликованные резюме с файлами
+bun messages/scripts/hh-resume.mjs pdf       скачать PDF резюме с hh для писем
+```
+
+- Источник правды это `messages/resumes/<ключ>.md`, по файлу на резюме. Формат с пояснениями: `messages/resume-hh.example.md`. Файлы личные и в git не попадают.
+- Заливка с `--save` возможна только после пройденного `check` на текущей версии файла: правка файла сбрасывает отметку.
+- ATS (`messages/scripts/ats.mjs`) считает, какая доля тегов hh и навыков из текста вакансии найдена в резюме, с русскими леммами (нужен Python с `pymorphy3`, иначе без них). Методика покрытия взята из `keyword-match.mjs` проекта [career-ops](https://github.com/career-ops-hq/career-ops) (MIT). Синонимы навыков правятся в `messages/config/ats-synonyms.json`. Отчёты: `messages/out/ats/`.
+- Опыт на hh хранится в профиле, и запись привязывается к резюме галочками. `apply` сам находит нужные записи, создаёт недостающие и отвязывает лишние, но ничего не удаляет. Одинаковые тексты hh склеивает в одну запись.
+- Нужен Chrome или Edge с окном: вход в hh делаете вы сами. В Docker без графического окна этот раздел не работает.
+
 ## Площадки и парсеры
 
 Каждая площадка это модуль в `messages/scripts/parsers/`. Какие уже есть:
@@ -138,17 +160,25 @@ bun messages/scripts/probe.mjs --search <имя> --query "vue"  выдача п�
 
 ```
 .claude/skills/otklik/SKILL.md   команда: порядок шагов
-.claude/agents/                          letter-writer, fact-verifier, employer-review, company-scout, parser-writer, profile-builder
+.claude/agents/                          letter-writer, fact-verifier, employer-review, company-scout, parser-writer, profile-builder, pr-maker
 .claude/settings.json                    разрешения, чтобы скрипты и агенты не спрашивали подтверждения на каждый шаг
 messages/scripts/                        загрузка, гейт, сводка, подбор, probe
 messages/scripts/parsers/                парсеры площадок
 messages/rules/                          штампы, личные данные, разрешённая латиница для гейта
 messages/config/search.json              подбор вакансий: запросы, фильтры, веса
+.claude/skills/hh-resume/SKILL.md        резюме на hh: рынок, ATS, заливка
+messages/scripts/hh-resume.mjs, hh/      заливка резюме на hh: клиент браузера без npm-пакетов и действия с формами
+messages/scripts/hh-market.mjs, ats.mjs  срез рынка hh и ATS-сверка резюме с вакансиями
+messages/resumes/                        ваши резюме для hh в Markdown (личное)
 messages/*.example.*                     образцы профиля, candidate.json и заметок
 docker/, compose.yaml                    образ со всеми программами для запуска в Docker
 ```
 
 Личное (резюме, профиль, заметки, письма, кэш страниц) перечислено в `messages/.gitignore`. Если держите папку в git, команда предупредит, когда такой файл всё же попал в репозиторий.
+
+## Поддержка новых площадок
+
+Попросили агента сделать то, чего набор ещё не умеет, на другой площадке (резюме на Хабр Карьере или SuperJob, подбор вакансий на новом сайте): агент сделает это и предложит отправить результат pull request'ом в [SWDevStudio/otklik-kit](https://github.com/SWDevStudio/otklik-kit), чтобы площадкой пользовались все. То же с парсерами, которые пишет `parser-writer`. PR оформляет агент `pr-maker`: проверяет, что ничего личного не уходит (всё из `messages/.gitignore`, `candidate.json`, `config/search.json`, личные данные из `rules/personal-data.local.txt`), собирает коммит в отдельной ветке через `git worktree`, не трогая вашу рабочую папку, и открывает PR через `gh`. Без `gh` вы получите ссылку на страницу создания PR и готовое описание. Порядок для агента описан в `CLAUDE.md`.
 
 ## Если что-то не работает
 
