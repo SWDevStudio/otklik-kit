@@ -20,6 +20,29 @@ npx skills add ilyautov/humanizer-ru
 
 На Windows команда `python3` часто оказывается заглушкой Microsoft Store: скрипты сами пробуют `python`, `py` и `python3`.
 
+Не хотите ставить всё это: хватит одного Docker, см. следующий раздел.
+
+## Запуск в Docker
+
+В образе есть Claude Code, Bun, Chromium, `pdftotext`, Python с `razdel` и `pymorphy3` и скилл humanizer-ru. Нужен только Docker (на Windows и macOS Docker Desktop). Из корня проекта:
+
+```
+docker compose run --rm otklik
+```
+
+Первый запуск собирает образ, это несколько минут. Дальше открывается Claude Code в контейнере, и всё работает так же, как без Docker: `/otklik --refresh-profile`, `/otklik <ссылка>` и так далее.
+
+- Папка проекта смонтирована в контейнер как `/work`. Резюме, профиль, письма и парсеры, которые напишет `parser-writer`, сохраняются прямо в неё, на ваш диск. Файлы вне папки проекта контейнер не видит.
+- Вход в Claude: при первом запуске выполните `/login`, откройте ссылку в браузере и вставьте код. Вход хранится в томе Docker `otklik-kit_claude`, повторять его не нужно. Вместо входа можно задать в окружении `ANTHROPIC_API_KEY` или `CLAUDE_CODE_OAUTH_TOKEN` (его выдаёт `claude setup-token`).
+- Скрипты запускаются и без Claude:
+  ```
+  docker compose run --rm otklik bun messages/scripts/import-resume.mjs resume.pdf
+  docker compose run --rm otklik bun messages/scripts/status.mjs
+  ```
+- Образ без humanizer-ru и Python (меньше размер, гейт не измеряет «чистоту»): `docker compose build --build-arg HUMANIZER=0`.
+- Обновить Claude Code и остальное: `docker compose build --pull --no-cache`. Сам Claude Code в контейнере не обновляется.
+- Часовой пояс по умолчанию `Europe/Moscow`, другой задаётся переменной `TZ`.
+
 ## Первый запуск
 
 1. Скопируйте папку целиком и откройте её в Claude Code: корень папки это корень проекта.
@@ -122,6 +145,7 @@ messages/scripts/parsers/                парсеры площадок
 messages/rules/                          штампы, личные данные, разрешённая латиница для гейта
 messages/config/search.json              подбор вакансий: запросы, фильтры, веса
 messages/*.example.*                     образцы профиля, candidate.json и заметок
+docker/, compose.yaml                    образ со всеми программами для запуска в Docker
 ```
 
 Личное (резюме, профиль, заметки, письма, кэш страниц) перечислено в `messages/.gitignore`. Если держите папку в git, команда предупредит, когда такой файл всё же попал в репозиторий.

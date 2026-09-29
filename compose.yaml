@@ -1,0 +1,18 @@
+# Claude Code и все программы набора в контейнере: docker compose run --rm otklik
+services:
+  otklik:
+    build: docker
+    image: otklik-kit
+    init: true
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/work
+      - claude:/home/otklik/.claude
+    environment:
+      - TZ=${TZ:-Europe/Moscow}
+      - ANTHROPIC_API_KEY
+      - CLAUDE_CODE_OAUTH_TOKEN
+
+volumes:
+  claude:
