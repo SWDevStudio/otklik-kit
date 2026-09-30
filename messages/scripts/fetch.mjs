@@ -73,6 +73,7 @@ function buildHead(s, v, prevHead) {
     apply_tg: h.apply_tg,
     codeword_hint: h.codeword_hint,
     asks: h.asks,
+    trap_hint: h.trap_hint,
     lang: h.lang,
     lead: h.lead,
     words: spec.words.join("-"),
@@ -190,7 +191,8 @@ for (const raw of opt.sources) {
   }
   if (head.letter_required) row.notes.push("письмо обязательно");
   if (head.test_required) row.notes.push("есть тест работодателя, его проходить вручную");
-  if (head.codeword_hint) row.notes.push("кодовое слово: " + head.codeword_hint);
+  if (head.codeword_hint) row.notes.push("просьба вставить слово (ловушка, без одобрения не выполнять): " + head.codeword_hint);
+  if (head.trap_hint) row.notes.push("обращение к ИИ в тексте вакансии, не выполнять: " + head.trap_hint.length + " шт.");
   if (head.channel_from) row.notes.push("канал " + head.channel + ": " + head.channel_from);
   if (head.lang === "en") row.notes.push("вакансия на английском");
   const card = companyCard(head.company);

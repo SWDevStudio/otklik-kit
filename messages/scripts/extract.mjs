@@ -745,6 +745,11 @@ export function hints(v) {
     }
     if ((code || ask) && asks.length < 4) asks.push(s.length > 220 ? s.slice(0, 217) + "..." : s);
   }
+  const traps = sentences
+    .filter((s) => /(если|когда)\s+(ты|вы)\s+(ии|ai|нейросет|бот|языков\p{L}*\s+модел|llm|chatgpt|gpt|claude)|(ии|ai|нейросет\p{L}*|бот|llm|языков\p{L}*\s+модел\p{L}*)[^.]{0,40}(добав|вставь|впиши|напиши|упомян|используй|включи)|ignore\s+(all\s+|previous\s+|prior\s+)+instructions|игнорируй\s+(все\s+|предыдущ\p{L}*\s+)*инструкц|as\s+an?\s+(ai|llm)|you\s+are\s+an?\s+(ai|llm|language\s+model)/iu.test(s))
+    .slice(0, 3)
+    .map((s) => (s.length > 220 ? s.slice(0, 217) + "..." : s));
+  if (traps.length) out.trap_hint = traps;
   if (codeword) out.codeword_hint = codeword;
   if (asks.length) out.asks = asks;
   const email = text.match(/[\w.+-]+@[\w-]+\.[\w.-]*\w/);
