@@ -2,7 +2,7 @@
 import { writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { JOBS, CONFIG, fwd, read, today, parseDoc, formatDoc, statusLine, jobFile } from "./lib.mjs";
-import { settings, kit, PARSERS, parserErrors, classify, extract, blockedHosts } from "./extract.mjs";
+import { settings, kit, PARSERS, parserErrors, classify, extract, blockedHosts, historySlugs } from "./extract.mjs";
 import { atsResumes, marketCorpus, prepare } from "./ats-core.mjs";
 
 const CONFIG_FILE = join(CONFIG, "search.json");
@@ -157,9 +157,15 @@ const ranked = passed.map((c) => ({ ...c, pre: preScore(c) })).sort((a, b) => b.
 
 const scored = [];
 let failed = 0;
+let inHistory = 0;
+const answered = historySlugs();
 for (const c of ranked) {
   const s = classify(c.url);
   if (s.host && blockedHosts.has(new URL(s.url || c.url).hostname)) continue;
+  if (answered.has(s.slug)) {
+    inHistory++;
+    continue;
+  }
   try {
     const v = await extract(s);
     if (v.archived) continue;
@@ -195,7 +201,7 @@ const atsNote = atsList.length ? ` | ATS по резюме ${atsList.map((r) => 
 console.log(statusLine());
 for (const e of parserErrors) console.log("warn | парсер не загрузился: " + e);
 console.log(
-  `search: площадки ${sources.map((p) => p.name).join(", ")} | в выдаче ${total} (без дублей ${cards.size}) | зарплата «до» не выше ${C.minSalary}: пропущено ${lowPay} | без удалёнки: пропущено ${notRemote} | после отсева ${passed.length} | загружено ${scored.length}${failed ? `, ошибок ${failed}` : ""} | порог ${C.minScore}: подходят ${byScore.length}${atsNote}, в jobs ${picked.length}`
+  `search: площадки ${sources.map((p) => p.name).join(", ")} | в выдаче ${total} (без дублей ${cards.size}) | зарплата «до» не выше ${C.minSalary}: пропущено ${lowPay} | без удалёнки: пропущено ${notRemote} | после отсева ${passed.length}${inHistory ? ` | уже откликались (history): ${inHistory}` : ""} | загружено ${scored.length}${failed ? `, ошибок ${failed}` : ""} | порог ${C.minScore}: подходят ${byScore.length}${atsNote}, в jobs ${picked.length}`
 );
 for (const x of picked) {
   const file = jobFile(x.slug);

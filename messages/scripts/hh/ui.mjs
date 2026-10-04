@@ -247,7 +247,8 @@ export async function fillExperience(page, { id, resumeFrom, job, text, managed,
   }
   if (problems.length) throw new Error(`${job.company}: ${problems.join("; ")}, не сохраняю`);
   if (save) {
-    await clickSel(page, '[data-qa="profile-layout-save-button"]');
+    // кнопку перекрывает плашка cookies hh: обычный клик по координатам попадает в неё
+    await page.eval(() => document.querySelector('[data-qa="profile-layout-save-button"]')?.click());
     await sleep(4000);
     if ((await page.url()).includes("/profile/edit/experience")) throw new Error(`${job.company}: hh не принял форму, она осталась открытой`);
   }

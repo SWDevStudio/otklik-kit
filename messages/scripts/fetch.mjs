@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, rmSync 
 import { join, resolve } from "node:path";
 import { MSG, OUT, channelSpec, fwd, read, sha256, today, parseDoc, formatDoc, parseKeyLines, pdfFor, statusLine } from "./lib.mjs";
 import { atsResumes, marketCorpus, prepare } from "./ats-core.mjs";
-import { settings, classify, extract, hints, companyCard, quality, parserErrors } from "./extract.mjs";
+import { settings, classify, extract, hints, companyCard, quality, parserErrors, historySlugs } from "./extract.mjs";
 
 const STUB = "ТЕКСТ ВАКАНСИИ НЕ ПОЛУЧЕН";
 const opt = { force: false, research: false, sources: [] };
@@ -87,6 +87,7 @@ function buildHead(s, v, prevHead) {
 
 const rows = [];
 const seen = new Set();
+const answered = historySlugs();
 const dropIfUnused = (d) => {
   if (!existsSync(join(d, "vacancy.md")) || existsSync(join(d, "letter.md"))) return;
   const h = parseDoc(read(join(d, "vacancy.md"))).head;
@@ -97,6 +98,10 @@ for (const raw of opt.sources) {
   let s = classify(raw);
   if (seen.has(s.slug)) continue;
   seen.add(s.slug);
+  if (answered.has(s.slug) && !opt.force) {
+    rows.push({ state: "skip", dir: fwd(join(OUT, s.slug)), channel: s.channel || "", title: "", company: "", notes: ["уже откликались (messages/history.md), --force напишет всё равно"] });
+    continue;
+  }
   if (s.legacy && s.legacy !== s.slug) dropIfUnused(join(OUT, s.legacy));
   let dir = join(OUT, s.slug);
   mkdirSync(dir, { recursive: true });

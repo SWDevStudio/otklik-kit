@@ -4,7 +4,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { inflateRawSync } from "node:zlib";
 import { basename, extname, resolve, join, relative, isAbsolute } from "node:path";
 import { pathToFileURL } from "node:url";
-import { OUT, CACHE, COMPANIES, JOBS, PARSERS_DIR, fwd, read, ageDays, parseDoc, slugify, findBrowser } from "./lib.mjs";
+import { MSG, OUT, CACHE, COMPANIES, JOBS, PARSERS_DIR, fwd, read, ageDays, parseDoc, slugify, findBrowser } from "./lib.mjs";
 
 export const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36";
 export const settings = { refetch: false, reparse: false, browser: false };
@@ -678,6 +678,17 @@ export function classify(raw) {
     return { kind: "parser", parser: p.name, host, id: m.id, url: m.url || u.toString(), slug: m.slug || `${p.name}-${slugify(String(m.id), 40)}`, legacy: site.slug, channel: p.channel, forced, source: raw };
   }
   return { kind: "site", parser: "", host, url: site.url, slug: site.slug, channel: BOARDS.test(host) ? "board" : "site", forced, source: raw };
+}
+
+// messages/history.md: ссылки на вакансии, на которые уже откликнулись (папку в out/ после отклика удаляют). Сравнение по slug, как у папок out/.
+export function historySlugs() {
+  const slugs = new Set();
+  for (const m of read(join(MSG, "history.md")).matchAll(/https?:\/\/[^\s|)<>\]]+/g)) {
+    try {
+      slugs.add(classify(m[0]).slug);
+    } catch {}
+  }
+  return slugs;
 }
 
 function siteSlug(url) {

@@ -8,7 +8,8 @@ const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const dir = runDir(args[0]);
 const letterFile = args[1] ? (isAbsolute(args[1]) ? args[1] : join(dir, args[1])) : join(dir, "letter.md");
 
-const raw = read(letterFile).trim();
+// Первая строка «Вакансия: <ссылка>» нужна кандидату для навигации и в проверку не входит.
+const raw = read(letterFile).trim().replace(/^(?:вакансия\s*:\s*)?https?:\/\/\S+[ \t]*(?:\n+|$)/iu, "").trim();
 if (!raw) {
   console.log(`gate: red | нет текста в ${letterFile}`);
   process.exit(1);
@@ -218,7 +219,9 @@ else if (hitTerms.length < Math.min(2, terms.length))
 const tone = (mx.tone || "вы").toLowerCase();
 if (tone.startsWith("вы") && /(?<!\p{L})(ты|тебя|тебе|тобой|твой|твоя|твои|твоё|твоего|твоей|твоих)(?!\p{L})/iu.test(body)) add(soft, "тон", "вакансия на «вы», в письме есть «ты»");
 if (tone.startsWith("ты") && /(?<!\p{L})(вы|вас|вам|вами|ваш\p{L}*)(?!\p{L})/iu.test(body)) add(soft, "тон", "вакансия на «ты», в письме есть «вы»");
-if (russian && !/^Здравствуйте\.(?:\s|$)/.test(body.trim())) add(hard, "приветствие", "письмо на русском всегда начинается с отдельного «Здравствуйте.» (с точкой, без имени и других слов)");
+// Неформальное приветствие вместо «Здравствуйте.»: только если кандидат задал informal_greeting в notes.md и вакансия на «ты».
+const informalOk = tone.startsWith("ты") && /^informal_greeting:\s*\S/m.test(read(join(MSG, "notes.md"))) && /^(?:привет|хай|здорово|здарова)(?!\p{L})[^\n]{0,40}[.!?](?:\s|$)/iu.test(body.trim());
+if (russian && !informalOk && !/^Здравствуйте\.(?:\s|$)/.test(body.trim())) add(hard, "приветствие", "письмо на русском всегда начинается с отдельного «Здравствуйте.» (с точкой, без имени и других слов)");
 
 const scan = { status: "skipped" };
 const sc = findScanner();
